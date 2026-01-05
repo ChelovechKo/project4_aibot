@@ -37,4 +37,5 @@ class HabrParser(SiteParser):
             } for article in soup.find('div', class_ = 'tm-articles-list').find_all('article')
         ]
 
-pprint(HabrParser().parse())
+if __name__ == '__main__':
+    pprint(HabrParser().parse())
