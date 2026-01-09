@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "sqlite:///database/aibot.database"
+    DATABASE_URL: str = "sqlite:///aibot.db"
     REDIS_URL: str = "redis://localhost:6379/0"
 
     TELEGRAM_API_ID: Optional[int] = None
@@ -16,9 +16,9 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-40-mini"
 
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"
-    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
 
-    PARSE_INTERVAL_MINUTES: int = 30
+    PARSE_INTERVAL_MINUTES: int = 1
 
     DEBUG: bool = True
 
