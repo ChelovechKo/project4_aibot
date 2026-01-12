@@ -1,5 +1,7 @@
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+
 from .database.db import init_db, async_engine
 
 
@@ -9,10 +11,11 @@ async def lifespan(app: FastAPI):
     yield
     await async_engine.dispose()
 
+
 app = FastAPI(
     title="AIBot",
     description="AIBot",
-    version="1.0.0",
+    version="0.0.1",
     lifespan=lifespan
 )
 
