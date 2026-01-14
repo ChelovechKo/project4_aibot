@@ -4,8 +4,9 @@ from typing import List, Dict, Any
 
 from sqlalchemy.orm import Session
 
-from aibot.app.database.models import Source, NewsItem
-from aibot.app.news_parser.sites import HabrParser, SiteParser
+from .database.models import Source, NewsItem, Post
+from .database.types import SourceType
+from .news_parser.sites import HabrParser, SiteParser
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,13 @@ def save_news_items(session: Session, news_items: List[Dict[str, Any]]) -> int:
                 published_at=item_data.get('published_at', datetime.now()),
                 raw_text=item_data.get('raw_text')
             )
+            # Сначала добавляем news_item, чтобы получить id
             session.add(news_item)
+            session.flush()  # Получаем id для news_item
+
+            # Теперь создаем Post с правильным news_id
+            new_post = Post(news_id=news_item.id)
+            session.add(new_post)
             saved_count += 1
             logger.debug(f"Добавлена новость: {item_data.get('title', 'Без названия')}")
         except Exception as e:
@@ -60,37 +67,49 @@ def save_news_items(session: Session, news_items: List[Dict[str, Any]]) -> int:
 
 
 def parse_site_source(session: Session, source: Source) -> int:
-    source_type = getattr(source, 'type', 'site')
-    if source_type != 'site' or not source.enabled:
+    if source.type != SourceType.SITE or not source.enabled:
         return 0
+
+    # Сохраняем имя источника до обработки
+    source_name = source.name
+    source_url = source.url
 
     try:
         parser: SiteParser
-        if 'habr' in source.name.lower() or 'habr' in (source.url or '').lower():
+        if 'habr' in source_name.lower() or 'habr' in (source_url or '').lower():
             parser = HabrParser()
         else:
-            logger.warning(f"Парсер для источника '{source.name}' не найден")
+            logger.warning(f"Парсер для источника '{source_name}' не найден")
             return 0
 
-        logger.info(f"Парсинг новостей с источника: {source.name}")
+        logger.info(f"Парсинг новостей с источника: {source_name}")
         news_items = parser.parse()
 
         if not news_items:
-            logger.warning(f"Не найдено новостей с источника: {source.name}")
+            logger.warning(f"Не найдено новостей с источника: {source_name}")
             return 0
 
-        saved = save_news_items(session, news_items)
-        logger.info(f"Источник '{source.name}': сохранено {saved} новостей")
+        # Фильтруем новости без title
+        valid_news_items = [item for item in news_items if item.get('title')]
+        if len(valid_news_items) < len(news_items):
+            logger.warning(f"Отфильтровано {len(news_items) - len(valid_news_items)} новостей без заголовка")
+
+        if not valid_news_items:
+            logger.warning(f"Все новости с источника '{source_name}' не имеют заголовка")
+            return 0
+
+        saved = save_news_items(session, valid_news_items)
+        logger.info(f"Источник '{source_name}': сохранено {saved} новостей")
         return saved
 
     except Exception as e:
-        logger.error(f"Ошибка при парсинге источника '{source.name}': {e}", exc_info=True)
+        logger.error(f"Ошибка при парсинге источника '{source_name}': {e}", exc_info=True)
+        session.rollback()
         return 0
 
 
 def parse_telegram_source(session: Session, source: Source) -> int:
-    source_type = getattr(source, 'type', 'site')  # По умолчанию 'site' если поле отсутствует
-    if source_type != 'tg' or not source.enabled:
+    if source.type != SourceType.TG or not source.enabled:
         return 0
 
     # TODO: Реализовать парсинг Telegram-каналов
