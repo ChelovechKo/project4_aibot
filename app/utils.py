@@ -24,7 +24,6 @@ def check_duplicate(session: Session, url: str = None, title: str = None) -> boo
 
     return False
 
-
 def save_news_items(session: Session, news_items: List[Dict[str, Any]]) -> int:
     saved_count = 0
 
@@ -64,7 +63,6 @@ def save_news_items(session: Session, news_items: List[Dict[str, Any]]) -> int:
         raise
 
     return saved_count
-
 
 def parse_site_source(session: Session, source: Source) -> int:
     if source.type != SourceType.SITE or not source.enabled:
