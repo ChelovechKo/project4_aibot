@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     CELERY_RESULT_BACKEND: str = "redis://redis:6379/1"
 
     PARSE_INTERVAL_MINUTES: int = 1
-    GENERATE_INTERVAL_MINUTES: int = 30
+    GENERATE_INTERVAL_MINUTES: int = 5
     PUBLISH_INTERVAL_MINUTES: int = 30
 
     DEBUG: bool = True

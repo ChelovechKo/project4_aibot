@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Column, String, Boolean, Text, ForeignKey, Enum as SQLEnum
+from sqlalchemy import String, Boolean, Text, ForeignKey, Enum as SQLEnum, TypeDecorator
 from sqlalchemy.orm import declarative_base, relationship, Mapped, mapped_column
 from uuid import uuid4
 
@@ -9,6 +9,26 @@ from .types import PostStatus, SourceType
 
 def generate_uuid() -> str:
     return str(uuid4())
+
+class SourceTypeEnum(TypeDecorator):
+    """TypeDecorator для правильной работы с SourceType enum"""
+    impl = String
+    cache_ok = True
+
+    def __init__(self):
+        super().__init__(length=10)
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        if isinstance(value, SourceType):
+            return value.value
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        return SourceType(value)
 
 Base = declarative_base()
 
@@ -42,9 +62,8 @@ class Post(Base):
     generated_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     published_at: Mapped[Optional[datetime]] = mapped_column(nullable=False)
     status: Mapped[PostStatus] = mapped_column(
-        SQLEnum(PostStatus, native_enum=False),
-        nullable=False,
-        default=PostStatus.NEW
+        SourceTypeEnum(),
+        nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(nullable=False, default=datetime.now)
 

@@ -21,6 +21,9 @@ celery_app.conf.update(
         'app.tasks.parse_news': {
             'queue': 'parsing',
         },
+        'app.tasks.generate_posts': {
+            'queue': 'generation',
+        },
     },
     task_acks_late=True,
     task_time_limit=300,  # 5 минут для генерации
@@ -32,6 +35,10 @@ celery_app.conf.update(
         'parse_news': {
             'task': 'app.tasks.parse_news',
             'schedule': timedelta(minutes=settings.PARSE_INTERVAL_MINUTES),
+        },
+        'generate_posts': {
+            'task': 'app.tasks.generate_posts',
+            'schedule': timedelta(minutes=settings.GENERATE_INTERVAL_MINUTES),
         }
     }
 )

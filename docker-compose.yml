@@ -50,7 +50,7 @@ services:
          condition: service_healthy
       app:
         condition: service_started
-    command: celery -A app.celery_worker worker --loglevel=info
+    command: celery -A app.celery_worker worker --loglevel=info -Q parsing,generation
 
   celery-beat:
     build: .

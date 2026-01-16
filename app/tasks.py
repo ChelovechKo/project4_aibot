@@ -124,11 +124,6 @@ def generate_posts_task(self):
 
             session.commit()
             logger.info(f'Генерация завершена. Сгенерировано постов: {generated_count}')
-
-            if generated_count > 0:
-                logger.info(f'Запускаем публикацию постов для {generated_count} новых новостей')
-                # TODO публикация
-
             return {'status': 'success', 'generated': generated_count}
 
         except Exception as e:
