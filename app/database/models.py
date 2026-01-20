@@ -7,10 +7,8 @@ from uuid import uuid4
 
 from .types import PostStatus, SourceType
 
-
 def generate_uuid() -> str:
     return str(uuid4())
-
 
 class SourceTypeEnum(TypeDecorator):
     """TypeDecorator для правильной работы с SourceType enum"""
@@ -32,9 +30,7 @@ class SourceTypeEnum(TypeDecorator):
             return None
         return SourceType(value)
 
-
 Base = declarative_base()
-
 
 class NewsItem(Base):
     __tablename__ = "news_items"
@@ -47,13 +43,17 @@ class NewsItem(Base):
     title: Mapped[str] = mapped_column(nullable=False)
     url: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
     summary: Mapped[str] = mapped_column(Text)
-    source: Mapped[str] = mapped_column(String, nullable=False)  # TODO: foreign key to Source
+    source: Mapped[str] = mapped_column(
+        String,
+        ForeignKey("sources.id", ondelete="CASCADE"),
+        nullable=False
+    )
     published_at: Mapped[datetime] = mapped_column(nullable=False, default=datetime.now)
     raw_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(nullable=False, default=datetime.now)
 
     posts = relationship("Post", back_populates="news_item")
-
+    source = relationship("Source", back_populates="news_items")
 
 class Post(Base):
     __tablename__ = "posts"
@@ -74,7 +74,6 @@ class Post(Base):
 
     news_item = relationship("NewsItem", back_populates="posts")
 
-
 class Source(Base):
     __tablename__ = 'sources'
     id: Mapped[str] = mapped_column(
@@ -91,6 +90,7 @@ class Source(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(nullable=False, default=datetime.now)
 
+    news_items = relationship("NewsItem", back_populates="source")
 
 class Keyword(Base):
     __tablename__ = "keywords"
