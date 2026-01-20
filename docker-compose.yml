@@ -40,6 +40,8 @@ services:
          condition: service_healthy
       redis:
          condition: service_healthy
+    environment:
+      - TZ=Europe/Athens
 
   celery-worker:
     build: .
@@ -53,6 +55,9 @@ services:
       app:
         condition: service_started
     command: celery -A app.celery_worker worker --loglevel=info -Q parsing,generation
+    environment:
+      - TZ=Europe/Athens
+      - CELERY_TIMEZONE=Europe/Athens
 
   celery-beat:
     build: .
@@ -66,6 +71,9 @@ services:
       app:
         condition: service_started
     command: celery -A app.celery_worker beat --loglevel=info
+    environment:
+      - TZ=Europe/Athens
+      - CELERY_TIMEZONE=Europe/Athens
 
 volumes:
   postgres_data:

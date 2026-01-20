@@ -1,6 +1,6 @@
 from openai import OpenAI, RateLimitError, OpenAIError
 import logging
-from aibot.app.config import settings
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 

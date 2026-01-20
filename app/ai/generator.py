@@ -1,7 +1,7 @@
 import logging
 
-from aibot.app.ai.openai_client import make_request
-from aibot.app.database import NewsItem
+from .openai_client import make_request
+from ..database import NewsItem
 
 logger = logging.getLogger(__name__)
 

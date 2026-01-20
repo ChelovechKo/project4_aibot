@@ -6,7 +6,7 @@ from .database.types import SourceType, PostStatus
 
 from .utils import parse_site_source, parse_telegram_source
 from .celery_worker import celery_app
-from aibot.app.ai.generator import generate_posts
+from .ai.generator import generate_posts
 
 logger = logging.getLogger(__name__)
 
