@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     PARSE_INTERVAL_MINUTES: int = 30
     GENERATE_INTERVAL_MINUTES: int = 30
-    PUBLISH_INTERVAL_MINUTES: int = 15
+    PUBLISH_INTERVAL_MINUTES: int = 5
 
     DEBUG: bool = True
 
@@ -29,5 +29,6 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         extra = "allow"
+
 
 settings = Settings()

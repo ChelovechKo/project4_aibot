@@ -1,8 +1,9 @@
 import logging
 import asyncio
+import re
 from datetime import datetime
 
-from .database.models import NewsItem, Source, Post
+from .database.models import NewsItem, Source, Post, Keyword
 from .database.db import get_db_sync
 from .database.types import SourceType, PostStatus
 from .utils import parse_site_source, parse_telegram_source
@@ -84,6 +85,7 @@ def parse_news(self):
         logger.error(f'Критическая ошибка при парсинге новостей: {e}', exc_info=True)
         raise self.retry(exc=e, countdown=60)
 
+
 @celery_app.task(name='app.tasks.generate_posts', bind=True, max_retries=3)
 def generate_posts_task(self):
     logger.info('Выполняем задачу генерации постов по новости')
@@ -98,6 +100,9 @@ def generate_posts_task(self):
                 logger.info('Нет новых постов для генерации')
                 return {'status': 'success', 'generated': 0}
 
+            # Получаем все ключевые слова из базы
+            keywords = [row[0] for row in session.execute(session.query(Keyword.word))]
+
             generated_count = 0
             for post in posts:
                 try:
@@ -106,18 +111,46 @@ def generate_posts_task(self):
                         logger.warning(f'Новость с id {post.news_id} не найдена')
                         continue
 
-                    # TODO: filter existing news by keywords
-                    post_text = generate_posts(news_item)
-                    if not post_text:
-                        post.status = PostStatus.FAILED
-                        logger.warning(f'Не удалось сгенерировать пост для новости {news_item.id}')
-                        continue
+                    has_keyword = False
 
-                    # Обновляем существующий пост
-                    post.generated_text = post_text
-                    post.status = PostStatus.GENERATED
-                    generated_count += 1
-                    logger.info(f'Сгенерирован пост для новости {news_item.id}')
+                    for keyword in keywords:
+                        keyword_escaped = re.escape(keyword)
+                        regex_pattern = rf'\b{keyword_escaped}\b'  # для границ слов
+
+                        # Проверяем title, summary и raw_text
+                        try:
+                            if news_item.title and re.search(regex_pattern, news_item.title, re.IGNORECASE):
+                                has_keyword = True
+                                break
+
+                            if news_item.summary and re.search(regex_pattern, news_item.summary, re.IGNORECASE):
+                                has_keyword = True
+                                break
+
+                            if news_item.raw_text and re.search(regex_pattern, news_item.raw_text, re.IGNORECASE):
+                                has_keyword = True
+                                break
+                        except re.error as e:
+                            logger.error(f'Ошибка regex для ключевого слова {keyword}: {e}')
+                            continue
+
+                    if not has_keyword:
+                        # если в новости нет ключевых слов
+                        logger.info(f'Новость {news_item.id} не содержит ключевых слов. Пропускаем.')
+                        continue
+                    else:
+                        # если нашли ключевое слово в новости, то генерируем пост
+                        post_text = generate_posts(news_item)
+                        if not post_text:
+                            post.status = PostStatus.FAILED
+                            logger.warning(f'Не удалось сгенерировать пост для новости {news_item.id}')
+                            continue
+
+                        # Обновляем существующий пост
+                        post.generated_text = post_text
+                        post.status = PostStatus.GENERATED
+                        generated_count += 1
+                        logger.info(f'Сгенерирован пост для новости {news_item.id}')
 
                 except Exception as e:
                     logger.error(f'Ошибка при генерации поста для новости {post.news_id}: {e}', exc_info=True)

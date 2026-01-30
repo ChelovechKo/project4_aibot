@@ -122,7 +122,7 @@ API для управления списком ключевых слов и фи
 №	Функция	URL/Команда	Методы	Технологии
 1 [X] Сбор новостей (сайты)	Celery Beat	-	Celery, requests
 2 [ ] Сбор новостей (Telegram)	Celery Beat	-	Telethon
-3 [ ] Фильтрация новостей	-	-	Python, Redis
+3 [X] Фильтрация новостей	-	-	Python, Redis
 4 [X] AI-генерация постов	Celery Task	-	OpenAI API, asyncio
 5 [X] Публикация в Telegram	Celery Task	-	Telethon, Redis
 6 [X] API-управление	/api/sources/	CRUD	FastAPI
