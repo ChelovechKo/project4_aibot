@@ -134,7 +134,7 @@ def generate_posts_task(self):
                             logger.error(f'Ошибка regex для ключевого слова {keyword}: {e}')
                             continue
 
-                    if not has_keyword:
+                    if keywords and not has_keyword:
                         # если в новости нет ключевых слов
                         logger.info(f'Новость {news_item.id} не содержит ключевых слов. Пропускаем.')
                         continue

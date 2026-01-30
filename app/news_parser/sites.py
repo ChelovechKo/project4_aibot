@@ -7,14 +7,14 @@ from bs4 import BeautifulSoup
 
 
 class SiteParser(ABC):
-    def __init__(self, url: str, articles_path: str=''):
+    def __init__(self, url: str, articles_path: str = ''):
         self.base_url = url
         self.articles_url = articles_path
 
     def parse(self):
         raise NotImplementedError
 
-    def _normalize_url(self, url: str=''):
+    def _normalize_url(self, url: str = ''):
         return self.base_url + self.articles_url + url
 
 
@@ -72,6 +72,7 @@ class HabrParser(SiteParser):
                 continue # Пропускаем статьи с ошибками парсинга
 
         return result
+
 
 if __name__ == '__main__':
     pprint(HabrParser().parse())
