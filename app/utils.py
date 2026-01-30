@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def check_duplicate(session: Session, url: str = None, title: str = None) -> bool:
+    """Проверка, существует ли уже новость с таким URL или заголовком"""
     if url:
         existing = session.query(NewsItem).filter(NewsItem.url == url).first()
         if existing:
@@ -24,10 +25,13 @@ def check_duplicate(session: Session, url: str = None, title: str = None) -> boo
 
     return False
 
+
 def save_news_items(session: Session, news_items: List[Dict[str, Any]]) -> int:
+    """Сохранение новости"""
     saved_count = 0
 
     for item_data in news_items:
+        # проверка на дубль новости
         if check_duplicate(session, url=item_data.get('url'), title=item_data.get('title')):
             logger.debug(f"Пропущен дубликат: {item_data.get('title', 'Без названия')}")
             continue
@@ -36,11 +40,12 @@ def save_news_items(session: Session, news_items: List[Dict[str, Any]]) -> int:
             news_item = NewsItem(
                 title=item_data['title'],
                 url=item_data.get('url'),
-                summary=item_data.get('summary', ''),
-                source=item_data.get('source', 'unknown'),
+                summary=item_data.get('summary'),
+                source_id=session.query(Source.id).filter(Source.name == item_data.get('source')).scalar() if item_data.get('source') else None,
                 published_at=item_data.get('published_at', datetime.now()),
                 raw_text=item_data.get('raw_text')
             )
+            print("after add. url=", item_data.get('url'))
             # Сначала добавляем news_item, чтобы получить id
             session.add(news_item)
             session.flush()  # Получаем id для news_item
@@ -64,7 +69,9 @@ def save_news_items(session: Session, news_items: List[Dict[str, Any]]) -> int:
 
     return saved_count
 
+
 def parse_site_source(session: Session, source: Source) -> int:
+    """Парсинг сайта"""
     if source.type != SourceType.SITE or not source.enabled:
         return 0
 
@@ -107,6 +114,7 @@ def parse_site_source(session: Session, source: Source) -> int:
 
 
 def parse_telegram_source(session: Session, source: Source) -> int:
+    """Парсинг телеграм-канала"""
     if source.type != SourceType.TG or not source.enabled:
         return 0
 

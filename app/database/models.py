@@ -7,8 +7,10 @@ from uuid import uuid4
 
 from .types import PostStatus, SourceType
 
+
 def generate_uuid() -> str:
     return str(uuid4())
+
 
 class SourceTypeEnum(TypeDecorator):
     """TypeDecorator для правильной работы с SourceType enum"""
@@ -30,7 +32,9 @@ class SourceTypeEnum(TypeDecorator):
             return None
         return SourceType(value)
 
+
 Base = declarative_base()
+
 
 class NewsItem(Base):
     __tablename__ = "news_items"
@@ -43,17 +47,18 @@ class NewsItem(Base):
     title: Mapped[str] = mapped_column(nullable=False)
     url: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
     summary: Mapped[str] = mapped_column(Text)
-    source: Mapped[str] = mapped_column(
-        String,
-        ForeignKey("sources.id", ondelete="CASCADE"),
-        nullable=False
-    )
+    source_id: Mapped[Optional[str]] = mapped_column(ForeignKey("sources.id", ondelete="CASCADE"))
     published_at: Mapped[datetime] = mapped_column(nullable=False, default=datetime.now)
     raw_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(nullable=False, default=datetime.now)
 
-    posts = relationship("Post", back_populates="news_item")
-    source = relationship("Source", back_populates="news_items")
+    posts_ref = relationship("Post", back_populates="news_item")
+    source_ref = relationship("Source", back_populates="news_items")
+
+    @property
+    def source(self) -> Optional[str]:
+        return self.source_ref.name if self.source_ref else None
+
 
 class Post(Base):
     __tablename__ = "posts"
@@ -62,7 +67,7 @@ class Post(Base):
         index=True,
         default=generate_uuid
     )
-    news_id: Mapped[str] = mapped_column(ForeignKey("news_items.id"))
+    news_id: Mapped[str] = mapped_column(ForeignKey("news_items.id", ondelete="CASCADE"))
     generated_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     published_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     status: Mapped[PostStatus] = mapped_column(
@@ -72,7 +77,8 @@ class Post(Base):
     )
     created_at: Mapped[datetime] = mapped_column(nullable=False, default=datetime.now)
 
-    news_item = relationship("NewsItem", back_populates="posts")
+    news_item = relationship("NewsItem", back_populates="posts_ref")
+
 
 class Source(Base):
     __tablename__ = 'sources'
@@ -90,7 +96,8 @@ class Source(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(nullable=False, default=datetime.now)
 
-    news_items = relationship("NewsItem", back_populates="source")
+    news_items = relationship("NewsItem", back_populates="source_ref")
+
 
 class Keyword(Base):
     __tablename__ = "keywords"

@@ -1,12 +1,14 @@
 import logging
+import asyncio
+from datetime import datetime
 
 from .database.models import NewsItem, Source, Post
 from .database.db import get_db_sync
 from .database.types import SourceType, PostStatus
-
 from .utils import parse_site_source, parse_telegram_source
 from .celery_worker import celery_app
 from .ai.generator import generate_posts
+from .telegram.publisher import publish_post
 
 logger = logging.getLogger(__name__)
 
@@ -138,4 +140,64 @@ def generate_posts_task(self):
 
     except Exception as e:
         logger.error(f'Критическая ошибка при генерации постов: {e}', exc_info=True)
+        raise self.retry(exc=e, countdown=60)
+
+
+@celery_app.task(name='app.tasks.publish_posts', bind=True, max_retries=3)
+def publish_posts_task(self):
+    logger.info('Начинаем публикацию постов')
+    try:
+        db_gen = get_db_sync()
+        session = next(db_gen)
+        try:
+            posts = session.query(Post).filter(Post.status == PostStatus.GENERATED).limit(10).all()
+            if not posts:
+                logger.info('Нет новых постов для публикации')
+                return {'status': 'success', 'published': 0, 'failed': 0}
+
+            published = failed = 0
+            for post in posts:
+                if not post.generated_text:
+                    logger.warning(f'Пост {post.id} не имеет сгенерированного текста')
+                    continue
+
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        success = loop.run_until_complete(publish_post(post.generated_text))
+                    finally:
+                        loop.close()
+
+                    if success:
+                        post.status = PostStatus.PUBLISHED
+                        post.published_at = datetime.now()
+                        logger.info(f'Опубликован пост {post.id}')
+                        published += 1
+                    else:
+                        post.status = PostStatus.FAILED
+                        logger.warning(f'Не удалось опубликовать пост {post.id}')
+                        failed += 1
+
+                except Exception as e:
+                    logger.error(f'Ошибка при публикации поста {post.id}: {e}', exc_info=True)
+                    post.status = PostStatus.FAILED
+                    failed += 1
+                    continue
+
+            session.commit()
+            logger.info(f'Публикация завершена. Опубликовано постов: {published}. Провалено постов: {failed}')
+            return {'status': 'success', 'published': published, 'failed': failed}
+        except Exception as e:
+            logger.error(f'Ошибка при публикации постов: {e}', exc_info=True)
+            session.rollback()
+            raise
+        finally:
+            try:
+                next(db_gen)
+            except StopIteration:
+                pass
+
+    except Exception as e:
+        logger.error(f'Критическая ошибка при публикации постов: {e}', exc_info=True)
         raise self.retry(exc=e, countdown=60)

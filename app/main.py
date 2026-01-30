@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from .database.db import init_db, async_engine
 from fixtures import create_fixtures_sync
+from .api.endpoints import router
 import asyncio
 import logging
 
@@ -29,6 +30,8 @@ app = FastAPI(
     version="0.0.1",
     lifespan=lifespan
 )
+
+app.include_router(router)
 
 @app.get("/")
 def read_root():

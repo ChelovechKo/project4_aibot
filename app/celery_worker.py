@@ -11,11 +11,6 @@ celery_app = Celery(
     include=['app.tasks']
 )
 
-@celery_app.on_after_configure.connect
-def setup_initial_tasks(sender, **kwargs):
-    # чтоб не ждать 30 минут и сделать сразу первый запуск
-    sender.send_task('app.tasks.parse_news', queue='parsing')
-    sender.send_task('app.tasks.generate_posts', queue='generation')
 
 celery_app.conf.update(
     task_serializer='json',
@@ -28,6 +23,9 @@ celery_app.conf.update(
         },
         'app.tasks.generate_posts': {
             'queue': 'generation',
+        },
+        'app.tasks.publish_posts': {
+            'queue': 'publish',
         },
     },
     task_acks_late=True,
@@ -45,6 +43,10 @@ celery_app.conf.update(
         'generate_posts': {
             'task': 'app.tasks.generate_posts',
             'schedule': timedelta(minutes=settings.GENERATE_INTERVAL_MINUTES)
+        },
+        'publish_posts': {
+            'task': 'app.tasks.publish_posts',
+            'schedule': timedelta(minutes=settings.PUBLISH_INTERVAL_MINUTES)
         }
     }
 )

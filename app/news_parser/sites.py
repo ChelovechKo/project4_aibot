@@ -17,10 +17,11 @@ class SiteParser(ABC):
     def _normalize_url(self, url: str=''):
         return self.base_url + self.articles_url + url
 
+
 class HabrParser(SiteParser):
     def __init__(self):
         super().__init__('https://habr.com/', 'ru/articles/')
-        self.source = 'habr'
+        self.source = 'Habr'
 
     def parse(self):
         response = requests.get(self._normalize_url(), headers={
